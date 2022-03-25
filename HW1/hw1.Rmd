@@ -1,0 +1,382 @@
+---
+title: "HW1"
+author: "BI Qiuyu 20835281"
+date: "2022-02-23"
+output: html_document
+---
+## 2.8
+
+### (a)
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+college <- read.csv("/Users/arthurbi/Desktop/College.csv")
+```
+
+### (b)
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+rownames(college) <- college[,1]
+View(college)
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+college <- college[,-1]
+View(college)
+```
+
+### (c)
+
+- i
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+summary(college)
+```
+
+- ii
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+college$Private <- as.factor(college$Private)
+pairs(college[,1:10])
+```
+
+- iii
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+boxplot(college$Private, college$Outstate)
+```
+
+- iv
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+Elite <- rep("No", nrow(college))
+Elite[college$Top10perc > 50] <- "Yes"
+Elite <- as.factor(Elite)
+college <- data.frame(college, Elite)
+summary(college$Elite)
+boxplot(college$Outstate, college$Elite)
+```
+
+- v
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+par(mfrow = c(3,4))
+hist(college$Apps)
+hist(college$Accept)
+hist(college$Enroll)
+hist(college$Top10perc)
+hist(college$Top25perc)
+hist(college$F.Undergrad)
+hist(college$P.Undergrad)
+hist(college$Outstate)
+hist(college$Room.Board)
+hist(college$Books)
+hist(college$Personal)
+hist(college$PhD)
+```
+
+- vi
+
+We can see that the more applications college receives the more applicants college accepts.
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+plot(college$Apps, college$Accept)
+```
+
+## 2.10
+
+### (a)
+Data set has 506 rows and 13 colnums.
+
+Rows represent observations of the house price.
+
+Colnums represent some attributes that may influence the house price.
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+library(ISLR2)
+dim(Boston)
+View(Boston)
+```
+
+### (b)
+
+We can see that rm has negative relationship with lstat, which means the more rooms per house have, the less likely landlords have bad status.
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+boston <- Boston
+y <- boston[,13]
+X <- boston[,-13]
+# View(y)
+plot(X)
+```
+
+### (c)
+
+Chas is associated with per capita crime rate. If the region is on the Charles River, it always has low per capita crime rate.
+
+### (d)
+
+The census tracts of Boston have particularly high crime rates, tax rates.
+
+But there is no evidence to show Boston has particularly high Pupil-teacher ratios.
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+par(mfrow = c(2,2))
+plot(X$crim)
+plot(X$tax)
+plot(X$ptratio)
+```
+
+### (e)
+
+35 census tracts in this data set bound the Charles river.
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+sum(X$chas == 1)
+```
+
+### (f)
+
+The median pupil-teacher ratio among the towns in this data set is 19.05
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+median(X$ptratio)
+```
+
+### (g)
+
+No. 399 and 406 census tract of Boston has lowest median value of owner-occupied homes.
+
+The other predictors are showing in plot 1.
+
+We can see that both of them have higher crime rate, less residential land, more industry land, away from Charles River, higher NOX rate, fewer rooms per house, more old buildings, less convenient to motorway, more tax and worse landlords' status.
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+cur <- X[which(y == min(y)),]
+print(cur)
+print(cur > colMeans(X))
+```
+
+### (h)
+
+64 census tracts average more than seven rooms per dwelling.
+
+13 census tracts average more than eight rooms per dwelling.
+
+We can see that most of the census tracts that have more than eight rooms per dwelling have higher median value of owner-occupied homes than average.
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+sum(X$rm > 7)
+sum(X$rm > 8)
+
+cur <- y[which(X$rm > 8)]
+print(cur)
+print(cur > mean(y))
+```
+
+
+## 3.8
+
+### (a)
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+auto <- read.csv("/Users/arthurbi/Desktop/Auto.csv")
+auto$horsepower <- as.numeric(auto$horsepower)
+auto <- na.omit(auto)
+# print(auto)
+lm.fit <- lm(mpg ~ horsepower, data = auto)
+summary(lm.fit)
+```
+
+- i
+
+Yes, there is a ralationship between the predictor and the response.
+
+- ii
+
+We can nearly 100% confident that the relationship exists, because p-value is less than 2e-16.
+
+- iii
+
+The relationship between the predictor and the response is negative, because estimate of horsepower is negative.
+
+- iv
+
+The predicted mpg associated with a borsepower of 98 is 24.46708.
+
+The 95% confidence intervals is [23.97308, 24.96108]
+
+The 95% prediction intervals is [14.8094, 34.12476]
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+predict(lm.fit, data.frame(horsepower=(98)), interval = 'confidence')
+predict(lm.fit, data.frame(horsepower=(98)), interval = 'prediction')
+```
+
+### (b)
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+plot(auto$horsepower, auto$mpg)
+abline(lm.fit)
+```
+
+### (c)
+
+From the residual plot, We find the linear model is not good enough. We can introduce some non-linear terms.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+par(mfrow = c(2,2))
+plot(lm.fit)
+```
+
+## 3.9
+
+### (a)
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+plot(auto)
+```
+
+### (b)
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+auto <- auto[,-9]
+cor(auto)
+```
+
+### (c)
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+lm.fit <- lm(mpg ~ .,data = auto)
+summary(lm.fit)
+```
+
+- i
+
+There is a relationship between the predictors and the response.
+
+- ii
+
+Displacement, weight, year, origin appear to have statistically significant relationship to the response.
+
+- iii
+
+The estimate coefficient of year is positive, which suggest that newer car will have more mpg than old car has.
+
+### (d)
+
+From the residual plots we can not find unusually large outliers.
+
+From the Leverage plots we can not find unusually high leverage.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+par(mfrow = c(2,2))
+plot(lm.fit)
+```
+
+### (e)
+
+The interactions are statistically significant between cylinders and horsepower, also between acceleration and origin.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+lm.fit2 <- lm(mpg ~ . + cylinders*horsepower + acceleration:origin, data = auto)
+summary(lm.fit2)
+```
+
+### (f)
+
+We find that horsepower^2 and displacement^2 have strong relationship with mpg.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+lm.fit3 <- lm(mpg ~ . + I(horsepower^2) + I(displacement^2), data = auto)
+summary(lm.fit3)
+```
+
+## Coding problem
+
+```{r message=FALSE, echo = TRUE, results='hide', warning=FALSE, error=FALSE}
+library(FNN)
+library(ggplot2)
+rm(list=ls())
+set.seed(10)
+
+n <- 200 # num of observations
+nt <- n
+nrep <- 100 # num of datasets
+p <- 20 # num of attributes
+puse <- c(1,2,3,20) # num of used attributes
+k <- c(1:9) # num of neighbors in knn
+
+sigma <- 0.7 # sd of noise
+
+X <- replicate(p,runif(n,-2,2))
+Xt <- X
+y0 <- sin(2*X[,1]) # underlying model
+yt <- sin(2*Xt[,1])
+
+out_knn <- data.frame()
+out_lm <- data.frame()
+
+for(i in 1:length(puse)){
+  yhat_lm <- matrix(0,nt,nrep)
+  yhat_knn <- replicate(length(k), matrix(0,nt,nrep))
+  Xt <- X[,1:puse[i]] # use different num of attributes
+  for(l in 1:nrep){
+    y <- y0 + rnorm(n,0,sigma)
+
+    ######### DO: fit linear regression using lm funciton, assign predicted value to yhat_lm[,l] #########
+
+    yhat_lm[,l] <- predict(lm(y~Xt), data.frame(Xt))        # predicted value by lm
+
+    for(j in 1:length(k)){
+      ######### DO: fit knn using knn.reg funciton, assign predicted value to yhat_knn[,l,j] #########
+
+      yhat_knn[,l,j] <- knn.reg(train = Xt, y = y, k = k[j])$pred         # predicted value by knn.reg
+
+    }
+
+    cat(i,"-th p, ",l,"-th repitition finished. \n")
+  }
+
+  ######### DO: compute bias and variance of linear regression #########
+  # compute mean of predicted values
+  
+  ybar_lm <-  apply(yhat_lm, 1, mean)                # E(f^hat)
+  
+  # compute bias^2
+
+  biasSQ_lm <-  mean((yt-ybar_lm)^2)      # E[ (f - E(f^hat))^2 ]
+
+  # compute variance
+
+  variance_lm <-  mean(apply(yhat_lm, 1, var))  # E[ (E(f^hat) - f^hat)^2 ]
+
+  # compute total MSE
+
+  err_lm <- mean((yt-yhat_lm)^2)
+
+  out_lm <- rbind(out_lm,data.frame(error=biasSQ_lm,component="squared-bias",p=paste0("p=",puse[i])))
+  out_lm <- rbind(out_lm,data.frame(error=variance_lm,component="variance",p=paste0("p=",puse[i])))
+  out_lm <- rbind(out_lm,data.frame(error=err_lm,component="MSE",p=paste0("p=",puse[i])))
+
+  ######### IMPLEMENT: compute bias and variance of knn regression #########
+  # compute mean of predicted values
+  
+  ybar_knn <- apply(yhat_knn, c(1,3), mean)                 # E(f^hat)
+  ybar_knn <- array(ybar_knn, c(n,1,length(k)))
+  
+  # compute bias^2
+
+  biasSQ_knn <- apply((yt-ybar_knn)^2, 3, mean)       # E[ (f - E(f^hat))^2 ]
+
+  # compute variance
+  
+  variance_knn <- apply(apply(yhat_knn, c(1,3), var), 2, mean)   # E[ (E(f^hat) - f^hat)^2 ]
+  # variance_knn <- apply(apply((yhat_lm-ybar_lm)^2, c(1,3), mean), 2, mean)
+  # compute total MSE
+
+  err_knn <- apply((yt-yhat_knn)^2, 3, mean)
+
+  out_knn <- rbind(out_knn,data.frame(error=biasSQ_knn,component="squared-bias",K=1/k,p=paste0("p=",puse[i])))
+  out_knn<- rbind(out_knn,data.frame(error=variance_knn,component="variance",K=1/k,p=paste0("p=",puse[i])))
+  out_knn<- rbind(out_knn,data.frame(error=err_knn,component="MSE",K=1/k,p=paste0("p=",puse[i])))
+}
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+options(repr.plot.width=10, repr.plot.height=3)
+p <- ggplot(out_knn,aes(x=K,y=error,col=component)) + geom_line() + scale_x_log10() +
+  geom_hline(data=out_lm,aes(yintercept=error,col=component),linetype="dashed") +
+  facet_grid(.~p) +
+  labs(x="1/K",y="Error")
+p
+```

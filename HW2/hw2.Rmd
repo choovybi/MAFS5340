@@ -1,0 +1,635 @@
+---
+title: "HW2"
+author: "BI Qiuyu 20835281"
+date: "2022-03-23"
+output: html_document
+---
+## 4.13
+
+### (a)
+
+We can see that Volume is increasing with Year.
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+library(ISLR2)
+names(Weekly)
+summary(Weekly)
+pairs(Weekly)
+```
+
+### (b)
+
+We assume that the significant level is 0.05, Lag2 appears to be statistically signiﬁcant, because it's p-value is less than the significant level.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+attach(Weekly)
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+glm.fits <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, data = Weekly, family = binomial)
+summary(glm.fits)
+```
+
+### (c)
+
+From the confusion matrix, we can see that logistic regression made lots of false positive mistakes.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+glm.probs <- predict(glm.fits, type = "response")
+contrasts(Direction)
+glm.pred <- rep("Down", 1089)
+glm.pred[glm.probs > .5] <- "Up"
+table(glm.pred, Direction)
+mean(glm.pred == Direction)
+mean(glm.pred != Direction)
+```
+
+### (d)
+
+The confusion matrix and the overall fraction of correct predictions of logistic regression are as follow:
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+train <- (Year<2009)
+Weekly.2009 <- Weekly[!train, ]
+Direction.2009 <- Direction[!train]
+glm.fits <- glm(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+glm.probs <- predict(glm.fits, Weekly.2009, type = "response")
+glm.pred <- rep("Down", 104)
+glm.pred[glm.probs > .5] <- "Up"
+table(glm.pred, Direction.2009)
+mean(glm.pred == Direction.2009)
+mean(glm.pred != Direction.2009)
+```
+
+### (e)
+
+LDA:
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+library(MASS)
+lda.fits <- lda(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+lda.probs <- predict(lda.fits, Weekly.2009, type = "response")
+lda.pred <- lda.probs$class
+table(lda.pred, Direction.2009)
+mean(lda.pred == Direction.2009)
+mean(lda.pred != Direction.2009)
+```
+
+### (f)
+
+QDA:
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+qda.fits <- qda(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+qda.probs <- predict(qda.fits, Weekly.2009, type = "response")
+qda.pred <- qda.probs$class
+table(qda.pred, Direction.2009)
+mean(qda.pred == Direction.2009)
+mean(qda.pred != Direction.2009)
+```
+
+### (g)
+
+KNN with K = 1:
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+library(class)
+train.X <- cbind(Lag2)[train, ]
+train.X <- matrix(train.X)
+test.X <- cbind(Lag2)[!train, ]
+test.X <- matrix(test.X)
+train.Direction <- Direction[train]
+set.seed(1)
+knn.pred <- knn(train.X, test.X, train.Direction,  k = 1)
+table(knn.pred, Direction.2009)
+mean(knn.pred == Direction.2009)
+mean(knn.pred != Direction.2009)
+```
+
+### (h)
+
+Naive Bayes:
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+library(e1071)
+nb.fit <- naiveBayes(Direction ~ Lag2, data = Weekly, subset = train)
+nb.pred <- predict(nb.fit, Weekly.2009)
+table(nb.pred, Direction.2009)
+mean(nb.pred == Direction.2009)
+mean(nb.pred != Direction.2009)
+```
+
+### (i)
+
+Logistic regression and LDA appear to provide the best results on this data.
+
+### (j)
+
+According to experiment with diﬀerent combinations of predictors, including possible transformations and interactions, for each of the methods, I find that KNN with 10 neighbors and only has predictor "Lag2" provides the best results on the held out data.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# sample dataset into training set and test set
+groups <- sample(1:10, dim(Weekly[1]), replace=TRUE)
+train <- (groups<8)
+Weekly.test <- Weekly[!train, ]
+Direction.test <- Direction[!train]
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# feature selection in training set
+glm.fits <- glm(Direction ~ Lag1+Lag2+Lag3+Lag4+Lag5+Volume+Lag2:Volume+Lag2*Volume+Lag1*Lag2, data = Weekly, family = binomial, subset = train)
+glm.fits2 <- step(glm.fits, trace=0)
+summary(glm.fits2)
+mse <- rep(10000, 19)
+cnt <- 1
+
+# glm
+glm.probs <- predict(glm.fits2, Weekly.test, type = "response")
+glm.pred <- rep("Down", length(glm.probs))
+glm.pred[glm.probs > .5] <- "Up"
+
+ACC = mean(glm.pred == Direction.test)
+MSE = mean(glm.pred != Direction.test)
+mse[cnt] <- MSE
+cnt = cnt+1
+print("glm")
+table(glm.pred, Direction.test)
+print(ACC)
+print(MSE)
+print("")
+
+# lda
+lda.fits <- lda(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+lda.probs <- predict(lda.fits, Weekly.test, type = "response")
+lda.pred <- lda.probs$class
+
+ACC = mean(lda.pred == Direction.test)
+MSE = mean(lda.pred != Direction.test)
+mse[cnt] <- MSE
+cnt = cnt+1
+print("lda")
+table(lda.pred, Direction.test)
+print(ACC)
+print(MSE)
+print("")
+
+# qda
+qda.fits <- qda(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+qda.probs <- predict(qda.fits, Weekly.test, type = "response")
+qda.pred <- qda.probs$class
+
+ACC = mean(qda.pred == Direction.test)
+MSE = mean(qda.pred != Direction.test)
+mse[cnt] <- MSE
+cnt = cnt+1
+print("qda")
+table(qda.pred, Direction.test)
+print(ACC)
+print(MSE)
+print("")
+
+# Naive bayes
+nb.fits <- naiveBayes(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+nb.pred <- predict(nb.fits, Weekly.test)
+
+ACC = mean(nb.pred == Direction.test)
+MSE = mean(nb.pred != Direction.test)
+mse[cnt] <- MSE
+cnt = cnt+1
+print("Naive bayes")
+table(nb.pred, Direction.test)
+print(ACC)
+print(MSE)
+print("")
+
+# KNN with different neighbors
+X.train <- Weekly[train, c("Lag2")]
+X.train <- matrix(X.train)
+X.test <- Weekly[!train, c("Lag2")]
+X.test <- matrix(X.test)
+Direction.train <- Direction[train]
+for(i in 1:15){
+  set.seed(1)
+  knn.pred <- knn(X.train, X.test, Direction.train,  k = i)
+
+  ACC = mean(knn.pred == Direction.test)
+  MSE = mean(knn.pred != Direction.test)
+  mse[cnt] <- MSE
+  cnt = cnt+1
+  print(paste("knn with",i,"neighbors"))
+  print(table(knn.pred, Direction.test))
+  print(ACC)
+  print(MSE)
+  print("")
+}
+
+# output minimum mse and the model who has minimum mse
+print(mse)
+print(min(mse))
+print(which.min(mse))
+
+```
+
+## 4.14
+
+### (a)
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+auto <- read.csv("/Users/arthurbi/Desktop/Auto.csv")
+# print(dim(auto))
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+mpg01 <- rep(0, 397)
+med <- median(auto$mpg)
+mpg01[auto$mpg > med] <- 1
+# compute mpg01
+auto <- data.frame(mpg01, auto)
+print(head(auto))
+# print(tail(auto))
+```
+### (b)
+
+Features "cylinders", "displacement", "horsepower" and "weight" seem most likely to be useful in predicting "mpg01".
+
+I find that the correlation between "cylinders", "displacement", "horsepower", "weight" and "mpg01" are all negative, which means that the bigger those four features, the more likely mpg01 to be 0.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# compute correlation between features and response, select features with significant correlation.
+auto$horsepower <- as.numeric(auto$horsepower)
+auto <- auto[,-10]
+auto <- na.omit(auto)
+pairs(auto[,-10])
+cor(auto)
+```
+### (c)
+
+I Split the whole dataset into training set and test set, 70% data in training set and the rest 30% data in test set.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# 70% data in training set and 30% data in test set
+set.seed(1)
+groups <- sample(1:10, dim(auto[1]), replace=TRUE)
+train <- (groups<8)
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# features and response
+mpg01 <- auto[,1]
+auto <- auto[,-c(1,2)]
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# split the whole dataset into training set and test set
+auto.train <- auto[train, ]
+mpg01.train <- mpg01[train]
+
+auto.test <- auto[!train, ]
+mpg01.test <- mpg01[!train]
+
+data.train <- data.frame(mpg01=mpg01.train,auto.train)
+data.test <- data.frame(mpg01=mpg01.test,auto.test)
+```
+
+### (d)
+
+The test MSE of LDA model is 0.08943089
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# lda
+lda.fits <- lda(mpg01 ~ cylinders+displacement+horsepower+weight, data = data.train, family = binomial)
+lda.probs <- predict(lda.fits, auto.test, type = "response")
+lda.pred <- lda.probs$class
+table(lda.pred, mpg01.test)
+mean(lda.pred == mpg01.test)
+mean(lda.pred != mpg01.test)
+lda.MSE <- mean((as.numeric(mpg01.test)-as.numeric(lda.pred==1))^2)
+print(lda.MSE)
+```
+
+### (e)
+
+The test MSE of QDA model is 0.08943089
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# qda
+qda.fits <- qda(mpg01 ~ cylinders+displacement+horsepower+weight, data = data.train, family = binomial)
+qda.probs <- predict(qda.fits, auto.test, type = "response")
+qda.pred <- qda.probs$class
+table(qda.pred, mpg01.test)
+mean(qda.pred == mpg01.test)
+mean(qda.pred != mpg01.test)
+qda.MSE <- mean((as.numeric(mpg01.test)-as.numeric(qda.pred==1))^2)
+print(qda.MSE)
+```
+
+### (f)
+
+The test MSE of logistic regression model is 0.08943089
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# glm
+glm.fit <- glm(mpg01 ~ cylinders+displacement+horsepower+weight, data = data.train, family = binomial)
+glm.prob <- predict(glm.fit, auto.test, type = "response")
+glm.pred <- rep(0, length(mpg01.test))
+glm.pred[glm.prob > .5] <- 1
+table(glm.pred, mpg01.test)
+mean(glm.pred == mpg01.test)
+mean(glm.pred != mpg01.test)
+glm.MSE <- mean((as.numeric(mpg01.test)-as.numeric(glm.pred==1))^2)
+print(glm.MSE)
+```
+
+### (g)
+
+The test MSE of Naive Bayes model is 0.09756098
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# naive bayes
+nb.fit <- naiveBayes(mpg01 ~ cylinders+displacement+horsepower+weight, data = data.train, family = binomial)
+nb.pred <- predict(nb.fit, auto.test)
+table(nb.pred, mpg01.test)
+mean(nb.pred == mpg01.test)
+mean(nb.pred != mpg01.test)
+nb.MSE <- mean((as.numeric(mpg01.test)-as.numeric(nb.pred==1))^2)
+print(nb.MSE)
+```
+
+### (h)
+
+The test MSE of KNN model with 10 neighbors is 0.07317073.
+
+K equals to 10 seems to perform the best on this data set.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# knn with different neighbors
+train.X <- data.train[,c("cylinders","displacement","horsepower","weight")]
+test.X <- data.test[,c("cylinders","displacement","horsepower","weight")]
+mse <- rep(0,15)
+set.seed(1)
+# fixed seed
+for(i in 1:15){
+  knn.pred <- knn(train.X, test.X, mpg01.train,  k = i)
+  knn.MSE <- mean(mpg01.test != knn.pred)
+  mse[i] <- knn.MSE
+}
+print(min(mse))
+print(which.min(mse))
+```
+
+## 5.5
+
+### (a)
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+library(ISLR)
+summary(Default)
+attach(Default)
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+glm.fits <- glm(default~balance+income, data = Default, family = binomial)
+summary(glm.fits)
+```
+
+### (b)
+
+-i
+
+Split the sample set into a training set and a validation set.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# split the whole dataset into training set and validation set
+set.seed(1)
+groups <- sample(1:10, dim(Default[1]), replace=TRUE)
+train <- (groups<8)
+Default.test <- Default[!train, ]
+default.test <- default[!train]
+# print(dim(Default[train,]))
+# print(dim(Default.test))
+```
+
+-ii
+
+Fit a multiple logistic regression model using only the training observations.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+glm.fits <- glm(default~balance+income, data = Default, family = binomial, subset = train)
+summary(glm.fits)
+```
+
+-iii
+
+Obtain a prediction of default status for each individual in the validation set and then classify them.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+glm.probs <- predict(glm.fits, Default.test, type = "response")
+glm.pred <- rep("No", length(glm.probs))
+glm.pred[glm.probs > .5] <- "Yes"
+```
+
+-iv
+
+Compute the validation set error, about 2.835724% of the observations in the validation set are misclassiﬁed.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+table(glm.pred, default.test)
+y.hat <- ifelse(glm.pred == "No", 0, 1)
+y <- ifelse(default.test == "No", 0, 1)
+# table(y.hat, y)
+MSE <- mean(y.hat != y)
+print(MSE)
+```
+
+### (c)
+
+I repeat the process in (b) three times, using different splits of the observations. I find that all of these splits have similar mse, that is about 0.025.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+mse <- rep(10000, 3)
+for(i in 1:3) {
+  groups <- sample(1:10, dim(Default[1]), replace=TRUE)
+  train <- (groups<8)
+  Default.test <- Default[!train, ]
+  default.test <- default[!train]
+  # print(dim(Default[train,]))
+  # print(dim(Default.test))
+  glm.fits <- glm(default~balance+income , data = Default, family = binomial, subset = train)
+  glm.probs <- predict(glm.fits, Default.test, type = "response")
+  glm.pred <- rep("No", length(glm.probs))
+  glm.pred[glm.probs > .5] <- "Yes"
+  print(table(glm.pred, default.test))
+  y.hat <- ifelse(glm.pred == "No", 0, 1)
+  y <- ifelse(default.test == "No", 0, 1)
+  MSE <- mean(y.hat != y)
+  mse[i] <- MSE 
+  print(MSE)
+  print("---------")
+}
+print(mean(mse))
+
+```
+
+### (d)
+
+According to the following experiment, I find that including a dummy variable for student does not lead to a reduction in the test error rate.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# change feature student to dummy variable.
+student.yes <- ifelse(Default$student == "Yes", 1, 0)
+student.no <- ifelse(Default$student == "No", 1, 0)
+Default.new <- data.frame(Default[,-2], student.yes, student.no)
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+# repeat 10 times validation, compute the mse of model including a dummy variable.
+mse <- rep(10000, 10)
+for(i in 1:10) {
+  groups <- sample(1:10, dim(Default.new[1]), replace=TRUE)
+  train <- (groups<8)
+  Default.new.test <- Default.new[!train, ]
+  default.test <- default[!train]
+  
+  glm.fits <- glm(default~student.yes+student.no+balance+income , data=Default.new, family = binomial, subset = train)
+  glm.probs <- predict(glm.fits, Default.new.test, type = "response")
+  glm.pred <- rep("No", length(glm.probs))
+  glm.pred[glm.probs > .5] <- "Yes"
+  # print(table(glm.pred, default.test))
+  y.hat <- ifelse(glm.pred == "No", 0, 1)
+  y <- ifelse(default.test == "No", 0, 1)
+  MSE <- mean(y.hat != y)
+  mse[i] <- MSE
+  # print(MSE)
+  # print("---------")
+}
+print(mean(mse))
+```
+
+## 5.6
+
+### (a)
+
+The estimated standard errors of the "income" and "balance" logistic regression coeﬃcients are 4.985e-06 and 2.274e-04.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+glm.fits <- glm(default~balance+income, data = Default, family = binomial)
+summary(glm.fits)
+```
+
+### (b)
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+boot.fn <- function(Default, index){
+  set.seed(index)
+  Default.boot <- Default[sample(nrow(Default), dim(Default),replace=TRUE),]
+  glm.boot.fits <- glm(default~balance+income, data = Default.boot, family = binomial)
+  return(coefficients(glm.boot.fits)[2:3])
+}
+```
+
+### (c)
+
+Using bootstrap, I find that the standard errors of the logistic regression coeﬃcients for income and balance are 5.06828e-06 and 2.398791e-04.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+boot <- function(Default, n){
+  balance.boot <- rep(0, n)
+  income.boot <- rep(0, n)
+  for(i in 1:n){
+    ret <- boot.fn(Default, i)
+    balance.boot[i] <- ret[1]
+    income.boot[i] <- ret[2]
+  }
+  print("balance expected coeﬃcient")
+  print(mean(balance.boot))
+  print("balance coeﬃcient std")
+  print(sd(balance.boot))
+  print("---------------------------")
+  print("income expected coeﬃcient")
+  print(mean(income.boot))
+  print("income coeﬃcient std")
+  print(sd(income.boot))
+  print("---------------------------")
+}
+boot(Default, 100)
+```
+
+### (d)
+
+I find that the estimated standard errors obtained using the glm() function "4.985e-06" and "2.274e-04" are similar to the estimated standard errors obtained using bootstrap function "5.06828e-06" and "2.398791e-04"
+
+## Coding Problem
+
+Compare the estimates of MSE using the above two approaches, I find MSE of screen-then-validate procedure decreasing with the number of used variables increasing. However MSE of screen-while-validate remains the same with the number of used variables increasing.
+
+The second one, screen-while-validate should be used.
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+set.seed(1)
+n <- 100
+p <- 1000
+nfolds <- 10 # number of folds
+nvar <- c(2,5,10,15,20) # number of variables to select
+
+# generate dataset
+X <- scale(matrix(rnorm(n*p),n,p))
+y <- rnorm(n,0,1) # y is independent of X
+
+data_full <- data.frame(y,X)
+
+
+#################### functions you may use ####################
+# compute pvalues of marginal regression
+pval_marg <- function(y,X){
+  fit_marg <- lm(y~.,data.frame(y,X))
+  pval <- summary(fit_marg)$coefficients[2,4]
+  return(pval)
+}
+
+# compute pvalues of marginal regression for a data frame
+reg_marg <- function(data) apply(data[,-1],2,pval_marg,y=data[,1])
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+mse1 <- rep(0, length(nvar))
+mse2 <- rep(0, length(nvar))
+# print(order(reg_marg(data_full))[1:5])
+for(i in 1:length(nvar)){
+  # screen-then-validate procedure
+  # screen in whole dataset
+  index <- order(reg_marg(data_full))[1:nvar[i]]
+  # cv
+  groups <- sample(1:10, dim(data_full[1]), replace=TRUE)
+  mse.cv <- rep(0, 10)
+  for(j in 1:10){
+    test <- (groups==j)
+    lm.fit <- lm(y~.,data.frame(y = y[!test], X[!test,index]))
+    lm.pred <- predict(lm.fit, data.frame(X[test,index]))
+    mse.cv[j] <- mean((lm.pred-y[test])^2)
+  }
+  mse1[i] <- mean(mse.cv)
+  # -------------------------------
+  # screen-while-validate procedure
+  mse.cv <- rep(0, 10)
+  for(j in 1:10){
+    test <- (groups==j)
+    # screen in training set
+    data_full.cv <- data.frame(y[!test],X[!test,])
+    index <- order(reg_marg(data_full.cv))[1:nvar[i]]
+
+    lm.fit <- lm(y~.,data.frame(y = y[!test], X[!test,index]))
+    lm.pred <- predict(lm.fit, data.frame(X[test,index]))
+    mse.cv[j] <- mean((lm.pred-y[test])^2)
+  }
+  mse2[i] <- mean(mse.cv)
+}
+```
+
+```{r message=FALSE, result = 'hide', warning=FALSE, error=FALSE}
+library(ggplot2)
+mse1 <- data.frame(mse1)
+mse2 <- data.frame(mse2)
+dat_mse <- data.frame(MSE=c(rowMeans(mse1),rowMeans(mse2)),m=factor(nvar),Method=rep(c("screen-then-validate","screen-while-validate"),each=length(nvar)))
+# compute mse1 and mse2
+
+ggplot(dat_mse,aes(x=m,y=MSE,fill=m)) + geom_bar(stat="identity",position = position_dodge2()) + facet_grid(.~Method) + ggtitle("Fig1")
+```
